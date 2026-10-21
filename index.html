@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>庫存回報</title>
+<meta name="apple-mobile-web-app-title" content="庫存回報">
+<meta name="theme-color" content="#1f4e79">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --line:#d5dbe2; --fg:#16202b; --muted:#5c6876;
+  --accent:#1f4e79; --accent-fg:#ffffff; --mark:#f2b134; --ok:#2f7d4f; --warn:#b4541c; --soft:#e3e9f0;
+  --sans:"Noto Sans TC",system-ui,-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#10161d; --surface:#18212b; --line:#2a3644; --fg:#e6ebf0; --muted:#94a2b2;
+  --accent:#6fa8dc; --accent-fg:#0d1620; --ok:#5fc08a; --warn:#f08a50; --soft:#1f2a36; color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.55}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px}
+header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+header .wrap{padding-top:12px;display:flex;flex-direction:column;gap:10px}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{margin:0;font-size:20px;font-weight:900;letter-spacing:.02em}
+h1 span{display:inline-block;width:10px;height:10px;background:var(--mark);margin-right:8px;transform:translateY(-2px)}
+.today{font-family:var(--mono);font-size:13px;color:var(--muted)}
+nav{display:flex;gap:4px}
+nav button{flex:1;border:0;background:none;color:var(--muted);font:inherit;font-weight:700;padding:8px 6px 10px;border-bottom:3px solid transparent;cursor:pointer}
+nav button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--mark)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main .wrap{padding-top:20px;padding-bottom:48px;display:flex;flex-direction:column;gap:20px}
+[hidden]{display:none!important}
+section{display:flex;flex-direction:column;gap:20px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+h2{margin:0;font-size:16px;font-weight:700}
+.hint{margin:0;color:var(--muted);font-size:13px}
+.group{display:flex;flex-direction:column;gap:6px}
+.group-label{font-size:12px;color:var(--muted);letter-spacing:.08em}
+.who{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:inherit;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:999px;padding:8px 16px;cursor:pointer;font-size:15px}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+
+.card{border:1px solid var(--line);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:12px;background:var(--bg)}
+.card h3{margin:0;font-size:18px;font-weight:900;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.card h3 .unit{font-weight:400}
+.figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px}
+.fig{display:flex;flex-direction:column;gap:2px}
+.fig span{font-size:12px;color:var(--muted)}
+.fig b{font-family:var(--mono);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+.fig b.none{color:var(--muted);font-size:15px;font-family:var(--sans);font-weight:500}
+.fig small{font-size:11px;color:var(--muted)}
+.fig.key b{color:var(--accent)}
+.fig.key b.none{color:var(--muted)}
+.inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.inputs.one{grid-template-columns:1fr}
+.inputs.three{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+label{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:14px}
+label small{font-weight:400;color:var(--muted);font-size:12px}
+input{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 12px;width:100%;min-width:0}
+input.num{font-family:var(--mono);font-size:24px;font-weight:600}
+input.num::placeholder{font-family:var(--sans);font-size:16px;font-weight:400}
+input[type=date]{font-size:16px;min-width:0;max-width:100%}
+.filters label{min-width:0}
+.btn{font:inherit;font-weight:700;border:0;border-radius:6px;padding:15px 18px;background:var(--accent);color:var(--accent-fg);cursor:pointer;font-size:17px}
+.btn.ghost{background:var(--soft);color:var(--fg);font-weight:500;padding:9px 14px;font-size:14px}
+.btn:disabled{opacity:.5;cursor:wait}
+.err{color:var(--warn);font-size:14px;margin:0}
+.unit{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.by{font-size:12px;color:var(--muted)}
+.pos{color:var(--ok)} .neg{color:var(--warn)}
+
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-weight:500;color:var(--muted);font-size:12px;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
+.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.t{font-family:var(--mono)}
+tr.daystart td{border-top:2px solid var(--line)}
+.filters{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}
+@media (max-width:420px){.filters{grid-template-columns:1fr 1fr}.filters .btn{grid-column:1/-1}}
+.empty{padding:18px;border:1px dashed var(--line);border-radius:6px;color:var(--muted);text-align:center;font-size:14px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:6px;font-weight:500;z-index:20;max-width:calc(100% - 32px)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <h1><span aria-hidden="true"></span>庫存回報</h1>
+      <div class="today" id="todayLabel"></div>
+    </div>
+    <nav>
+      <button data-tab="fill" aria-selected="true">填寫</button>
+      <button data-tab="today" aria-selected="false">今日總覽</button>
+      <button data-tab="history" aria-selected="false">歷史紀錄</button>
+    </nav>
+  </div>
+</header>
+
+<main><div class="wrap">
+  <p class="hint" id="loading">載入中…</p>
+
+  <!-- 填寫 -->
+  <section id="tab-fill">
+    <div class="panel">
+      <h2>你是誰？</h2>
+      <div id="whoList"></div>
+      <p class="hint">選一次就會記住，下次打開直接進入。</p>
+    </div>
+    <form class="panel" id="fillForm" autocomplete="off" hidden>
+      <div>
+        <h2 id="formTitle"></h2>
+        <p class="hint" id="formHint"></p>
+      </div>
+      <div id="cards" style="display:flex;flex-direction:column;gap:12px"></div>
+      <button class="btn" type="submit" id="submitBtn"></button>
+      <p class="err" id="formMsg"></p>
+    </form>
+  </section>
+
+  <!-- 今日總覽 -->
+  <section id="tab-today" hidden>
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <h2>今日各品項</h2>
+        <button class="btn ghost" type="button" id="refreshBtn">重新整理</button>
+      </div>
+      <div id="overview" style="display:flex;flex-direction:column;gap:12px"></div>
+    </div>
+  </section>
+
+  <!-- 歷史紀錄 -->
+  <section id="tab-history" hidden>
+    <div class="panel">
+      <div class="filters">
+        <label>從<input id="hFrom" type="date"></label>
+        <label>到<input id="hTo" type="date"></label>
+        <button class="btn ghost" type="button" id="searchBtn">查詢</button>
+      </div>
+      <span class="hint" id="hCount"></span>
+      <div class="tablewrap"><table>
+        <thead><tr><th>日期</th><th>品項</th><th class="n">昨日剩餘</th><th class="n">應到貨</th><th class="n">進貨</th><th class="n">到貨差異</th><th class="n">預估剩餘</th><th class="n">實際剩餘</th><th class="n">差異</th><th class="n">推算出貨</th><th class="n">明日叫貨</th><th>庫務</th><th>司機</th></tr></thead>
+        <tbody id="histBody"></tbody>
+      </table></div>
+      <p class="hint">到貨差異 = 進貨 − 應到貨（前次叫貨量）；差異 = 實際剩餘 − 預估剩餘；推算出貨 = 昨日剩餘 + 進貨 − 實際剩餘。完整資料在 Google 試算表「每日彙總」。</p>
+    </div>
+  </section>
+</div></main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const has = v => v !== null && v !== undefined && v !== "";
+const fmt = n => has(n) ? Number(n).toLocaleString("zh-TW", {maximumFractionDigits: 2}) : "—";
+const store = { get(k){ try{return localStorage.getItem(k)}catch(e){return null} }, set(k,v){ try{localStorage.setItem(k,v)}catch(e){} } };
+const S = { today: "", items: [], people: [], me: store.get("me") || "" };
+
+function toast(m){ const t=$("#toast"); t.textContent=m; t.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>t.hidden=true,2400); }
+const API = "https://script.google.com/macros/s/AKfycbxSXWZS18nhEVN4U2bu3hj7VGzvmUheuwAkjYPEWA7U75jN57SiZAteMyPdDk71FY5e/exec";
+async function call(fn, ...args){
+  let res;
+  try {
+    if (fn === "submit") {
+      res = await fetch(API, { method: "POST", credentials: "omit", body: JSON.stringify({ data: args[0] }) });
+    } else {
+      const q = fn === "getHistory"
+        ? "?api=history&from=" + encodeURIComponent(args[0]) + "&to=" + encodeURIComponent(args[1])
+        : "?api=init";
+      res = await fetch(API + q, { credentials: "omit" });
+    }
+  } catch (e) { throw new Error("連不上伺服器，請確認網路後再試一次。"); }
+  if (!res.ok) throw new Error("伺服器回應錯誤（" + res.status + "）");
+  const j = await res.json();
+  if (!j.ok) throw new Error(j.error || "發生錯誤");
+  return j.data;
+}
+function shortDate(d){ return d ? d.slice(5).replace("-", "/") : ""; }
+function isYesterday(d){ const t = new Date(S.today + "T00:00:00"); t.setDate(t.getDate() - 1); return d === ymd(t); }
+function ymd(d){ return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.setAttribute("aria-selected", x === b));
+  document.querySelectorAll("main section").forEach(s => s.hidden = s.id !== "tab-" + b.dataset.tab);
+  if (b.dataset.tab === "today") load();
+  if (b.dataset.tab === "history" && !$("#histBody").innerHTML) search();
+});
+
+function role(){ const p = S.people.find(p => p.name === S.me); return p ? p.role : ""; }
+
+function fig(label, value, unit, opts){
+  opts = opts || {};
+  const v = has(value) ? `<b>${fmt(value)}</b>` : `<b class="none">${opts.emptyText || "尚未填"}</b>`;
+  return `<div class="fig ${opts.key ? "key" : ""}"><span>${label}</span>${v}${opts.note ? `<small>${esc(opts.note)}</small>` : ""}</div>`;
+}
+function expNote(it){ return it.expectedDate && !isYesterday(it.expectedDate) ? shortDate(it.expectedDate) + " 叫的貨" : ""; }
+function arrivalTxt(it){
+  if (!has(it.incoming) || !has(it.expected)) return "";
+  const d = it.incoming - it.expected;
+  return d === 0 ? `<small class="pos">與叫貨相符</small>` : `<small class="neg">與叫貨差 ${d > 0 ? "+" : ""}${fmt(d)}</small>`;
+}
+function prevNote(it){ return it.prevDate && !isYesterday(it.prevDate) ? shortDate(it.prevDate) + " 的數字" : ""; }
+
+function renderWho(){
+  const groups = ["司機", "庫務"].concat([...new Set(S.people.map(p => p.role))].filter(r => r !== "司機" && r !== "庫務"));
+  $("#whoList").innerHTML = groups.map(g => {
+    const ps = S.people.filter(p => p.role === g); if (!ps.length) return "";
+    return `<div class="group"><div class="group-label">${esc(g)}</div><div class="who">${
+      ps.map(p => `<button type="button" class="chip" data-n="${esc(p.name)}" aria-pressed="${p.name===S.me}">${esc(p.name)}</button>`).join("")
+    }</div></div>`;
+  }).join("") || '<div class="empty">還沒有人員，請在試算表「人員」工作表新增。</div>';
+  $("#whoList").style.cssText = "display:flex;flex-direction:column;gap:12px";
+  document.querySelectorAll("#whoList .chip").forEach(c => c.onclick = () => { S.me = c.dataset.n; store.set("me", S.me); $("#formMsg").textContent = ""; renderAll(); });
+}
+
+function renderForm(){
+  const r = role(), form = $("#fillForm");
+  if (!r) { form.hidden = true; return; }
+  form.hidden = false;
+  const isWh = r === "庫務";
+  $("#formTitle").textContent = isWh ? "進貨、預估剩餘與叫貨" : "撿貨確認";
+  $("#formHint").textContent = isWh
+    ? "對照「應到貨」填今天實際進貨量，再填預估剩餘和明日叫貨量。不用改的欄位可以留空。"
+    : "先看昨日剩餘和今日進貨再撿貨，撿完填「今日實際剩餘」。";
+  $("#submitBtn").textContent = isWh ? "送出" : "送出實際剩餘";
+  $("#cards").innerHTML = S.items.map((it, i) => {
+    const u = it.unit ? `<span class="unit">${esc(it.unit)}</span>` : "";
+    if (isWh) return `<div class="card"><h3>${esc(it.name)} ${u}</h3>
+      <div class="figs">
+        ${fig("昨日剩餘", it.prev, it.unit, {emptyText: "無紀錄", note: prevNote(it)})}
+        <div class="fig key"><span>應到貨（叫貨量）</span>${has(it.expected) ? `<b>${fmt(it.expected)}</b>` : `<b class="none">沒有叫貨紀錄</b>`}${expNote(it) ? `<small>${esc(expNote(it))}</small>` : ""}${arrivalTxt(it)}</div>
+      </div>
+      <div class="inputs three">
+        <label>今日進貨量${has(it.incoming) ? `<small>目前 ${fmt(it.incoming)}，再填會更新</small>` : ""}<input class="num" inputmode="decimal" data-i="${i}" data-f="incoming" placeholder="${has(it.incoming) ? "不改可留空" : "0"}"></label>
+        <label>今日預估剩餘${has(it.estimate) ? `<small>目前 ${fmt(it.estimate)}，再填會更新</small>` : ""}<input class="num" inputmode="decimal" data-i="${i}" data-f="estimate" placeholder="${has(it.estimate) ? "不改可留空" : "0"}"></label>
+        <label>明日叫貨量${has(it.order) ? `<small>目前 ${fmt(it.order)}，再填會更新</small>` : ""}<input class="num" inputmode="decimal" data-i="${i}" data-f="order" placeholder="${has(it.order) ? "不改可留空" : "0"}"></label>
+      </div>
+      ${it.whBy ? `<div class="by">最後填寫：${esc(it.whBy)}</div>` : ""}</div>`;
+    return `<div class="card"><h3>${esc(it.name)} ${u}</h3>
+      <div class="figs">
+        ${fig("昨日剩餘", it.prev, it.unit, {emptyText: "無紀錄", note: prevNote(it), key: true})}
+        ${fig("今日進貨", it.incoming, it.unit, {emptyText: "庫務尚未填", key: true})}
+      </div>
+      <div class="inputs one">
+        <label>今日實際剩餘數量${has(it.actual) ? `<small>目前 ${fmt(it.actual)}（${esc(it.drBy)}），再填會更新</small>` : ""}<input class="num" inputmode="decimal" data-i="${i}" data-f="actual" placeholder="${has(it.actual) ? "不改可留空" : "撿完後填"}"></label>
+      </div></div>`;
+  }).join("") || '<div class="empty">還沒有品項，請在試算表「品項」工作表新增。</div>';
+}
+
+function renderOverview(){
+  $("#overview").innerHTML = S.items.map(it => {
+    const diff = has(it.actual) && has(it.estimate) ? it.actual - it.estimate : null;
+    const diffTxt = diff === null ? "" : `<small class="${diff < 0 ? "neg" : diff > 0 ? "pos" : ""}">與預估差 ${diff > 0 ? "+" : ""}${fmt(diff)}</small>`;
+    return `<div class="card"><h3>${esc(it.name)} ${it.unit ? `<span class="unit">${esc(it.unit)}</span>` : ""}</h3>
+      <div class="figs">
+        ${fig("昨日剩餘", it.prev, it.unit, {emptyText: "無紀錄", note: prevNote(it)})}
+        ${fig("應到貨（叫貨）", it.expected, it.unit, {emptyText: "無紀錄", note: expNote(it)})}
+        <div class="fig"><span>今日進貨</span>${has(it.incoming) ? `<b>${fmt(it.incoming)}</b>` : `<b class="none">尚未填</b>`}${arrivalTxt(it)}</div>
+        ${fig("預估剩餘", it.estimate, it.unit)}
+        <div class="fig key"><span>實際剩餘</span>${has(it.actual) ? `<b>${fmt(it.actual)}</b>` : `<b class="none">尚未填</b>`}${diffTxt}</div>
+        ${fig("明日叫貨", it.order, it.unit)}
+      </div>
+      <div class="by">庫務：${esc(it.whBy || "—")}　司機：${esc(it.drBy || "—")}</div></div>`;
+  }).join("") || '<div class="empty">還沒有品項。</div>';
+}
+
+function renderAll(){
+  const d = new Date(S.today + "T00:00:00");
+  $("#todayLabel").textContent = S.today.replace(/-/g, "/") + " 週" + "日一二三四五六"[d.getDay()];
+  renderWho(); renderForm(); renderOverview();
+}
+
+function apply(d){ Object.assign(S, d); $("#loading").hidden = true; renderAll(); }
+function load(){ return call("getInitData").then(apply).catch(e => { $("#loading").hidden = false; $("#loading").textContent = "載入失敗：" + e.message; }); }
+$("#refreshBtn").onclick = () => load().then(() => toast("已更新"));
+
+$("#fillForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const msg = $("#formMsg");
+  const byItem = {};
+  let bad = "";
+  document.querySelectorAll("#cards input[data-f]").forEach(inp => {
+    const raw = inp.value.trim().replace(/,/g, "");
+    if (raw === "") return;
+    const n = Number(raw), it = S.items[inp.dataset.i];
+    if (!isFinite(n) || n < 0) { bad = it.name + " 的數量只能填 0 以上的數字。"; return; }
+    (byItem[it.name] = byItem[it.name] || { item: it.name })[inp.dataset.f] = n;
+  });
+  const entries = Object.values(byItem);
+  if (bad) { msg.textContent = bad; return; }
+  if (!entries.length) { msg.textContent = "請至少填一個數字。"; return; }
+  msg.textContent = "";
+  const btn = $("#submitBtn"), label = btn.textContent;
+  btn.disabled = true; btn.textContent = "送出中…";
+  call("submit", { reporter: S.me, entries })
+    .then(d => { apply(d); toast(`已送出 ${entries.length} 個品項`); window.scrollTo(0, 0); })
+    .catch(err => { msg.textContent = "送出失敗：" + err.message; })
+    .finally(() => { btn.disabled = false; btn.textContent = label; });
+});
+
+function search(){
+  $("#hCount").textContent = "查詢中…";
+  call("getHistory", $("#hFrom").value, $("#hTo").value).then(rs => {
+    $("#hCount").textContent = `共 ${rs.length} 筆`;
+    let last = "";
+    $("#histBody").innerHTML = rs.map(r => {
+      const start = r.date !== last; last = r.date;
+      const cls = v => has(v) ? (v < 0 ? "neg" : v > 0 ? "pos" : "") : "";
+      const sg = v => (has(v) && v > 0 ? "+" : "") + fmt(v);
+      const dc = cls(r.diff);
+      return `<tr class="${start ? "daystart" : ""}"><td class="t">${start ? esc(shortDate(r.date)) : ""}</td><td>${esc(r.item)}</td><td class="n">${fmt(r.prev)}</td><td class="n">${fmt(r.expected)}</td><td class="n">${fmt(r.incoming)}</td><td class="n ${r.arrivalDiff ? "neg" : ""}">${sg(r.arrivalDiff)}</td><td class="n">${fmt(r.estimate)}</td><td class="n"><b>${fmt(r.actual)}</b></td><td class="n ${dc}">${has(r.diff) && r.diff > 0 ? "+" : ""}${fmt(r.diff)}</td><td class="n">${fmt(r.usage)}</td><td class="n">${fmt(r.order)}</td><td class="by">${esc(r.whBy)}</td><td class="by">${esc(r.drBy)}</td></tr>`;
+    }).join("") || '<tr><td colspan="13"><div class="empty">這段期間沒有紀錄。</div></td></tr>';
+  }).catch(e => { $("#hCount").textContent = "查詢失敗：" + e.message; });
+}
+$("#searchBtn").onclick = search;
+
+load().then(() => {
+  const t = new Date(S.today + "T00:00:00"), f = new Date(t); f.setDate(f.getDate() - 6);
+  $("#hFrom").value = ymd(f); $("#hTo").value = S.today;
+});
+</script>
+</body>
+</html>
