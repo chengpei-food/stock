@@ -61,6 +61,8 @@ label small{font-weight:400;color:var(--muted);font-size:12px}
 input{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 12px;width:100%;min-width:0}
 input.num{font-family:var(--mono);font-size:24px;font-weight:600}
 input.num::placeholder{font-family:var(--sans);font-size:16px;font-weight:400}
+.numwrap{display:flex;gap:6px}
+.sign{flex:none;width:48px;font:inherit;font-size:20px;font-weight:700;border:1px solid var(--line);border-radius:6px;background:var(--soft);color:var(--fg);cursor:pointer}
 input[type=date]{font-size:16px;min-width:0;max-width:100%}
 .filters label{min-width:0}
 .btn{font:inherit;font-weight:700;border:0;border-radius:6px;padding:15px 18px;background:var(--accent);color:var(--accent-fg);cursor:pointer;font-size:17px}
@@ -233,9 +235,9 @@ function renderForm(){
         <div class="fig key"><span>應到貨（叫貨量）</span>${has(it.expected) ? `<b>${fmt(it.expected)}</b>` : `<b class="none">沒有叫貨紀錄</b>`}${expNote(it) ? `<small>${esc(expNote(it))}</small>` : ""}${arrivalTxt(it)}</div>
       </div>
       <div class="inputs three">
-        <label>今日進貨量${has(it.incoming) ? `<small>目前 ${fmt(it.incoming)}，再填會更新</small>` : ""}<input class="num" inputmode="decimal" data-i="${i}" data-f="incoming" placeholder="${has(it.incoming) ? "不改可留空" : "0"}"></label>
-        <label>今日預估剩餘${has(it.estimate) ? `<small>目前 ${fmt(it.estimate)}，再填會更新</small>` : ""}<input class="num" inputmode="decimal" data-i="${i}" data-f="estimate" placeholder="${has(it.estimate) ? "不改可留空" : "0"}"></label>
-        <label>明日叫貨量${has(it.order) ? `<small>目前 ${fmt(it.order)}，再填會更新</small>` : ""}<input class="num" inputmode="decimal" data-i="${i}" data-f="order" placeholder="${has(it.order) ? "不改可留空" : "0"}"></label>
+        <label>今日進貨量${has(it.incoming) ? `<small>目前 ${fmt(it.incoming)}，再填會更新</small>` : ""}<span class="numwrap"><input class="num" inputmode="decimal" data-i="${i}" data-f="incoming" placeholder="${has(it.incoming) ? "不改可留空" : "0"}"><button type="button" class="sign" aria-label="正負切換">±</button></span></label>
+        <label>今日預估剩餘${has(it.estimate) ? `<small>目前 ${fmt(it.estimate)}，再填會更新</small>` : ""}<span class="numwrap"><input class="num" inputmode="decimal" data-i="${i}" data-f="estimate" placeholder="${has(it.estimate) ? "不改可留空" : "0"}"><button type="button" class="sign" aria-label="正負切換">±</button></span></label>
+        <label>明日叫貨量${has(it.order) ? `<small>目前 ${fmt(it.order)}，再填會更新</small>` : ""}<span class="numwrap"><input class="num" inputmode="decimal" data-i="${i}" data-f="order" placeholder="${has(it.order) ? "不改可留空" : "0"}"><button type="button" class="sign" aria-label="正負切換">±</button></span></label>
       </div>
       ${it.whBy ? `<div class="by">最後填寫：${esc(it.whBy)}</div>` : ""}</div>`;
     return `<div class="card"><h3>${esc(it.name)} ${u}</h3>
@@ -244,7 +246,7 @@ function renderForm(){
         ${fig("今日進貨", it.incoming, it.unit, {emptyText: "庫務尚未填", key: true})}
       </div>
       <div class="inputs one">
-        <label>今日實際剩餘數量${has(it.actual) ? `<small>目前 ${fmt(it.actual)}（${esc(it.drBy)}），再填會更新</small>` : ""}<input class="num" inputmode="decimal" data-i="${i}" data-f="actual" placeholder="${has(it.actual) ? "不改可留空" : "撿完後填"}"></label>
+        <label>今日實際剩餘數量${has(it.actual) ? `<small>目前 ${fmt(it.actual)}（${esc(it.drBy)}），再填會更新</small>` : ""}<span class="numwrap"><input class="num" inputmode="decimal" data-i="${i}" data-f="actual" placeholder="${has(it.actual) ? "不改可留空" : "撿完後填"}"><button type="button" class="sign" aria-label="正負切換">±</button></span></label>
       </div></div>`;
   }).join("") || '<div class="empty">還沒有品項，請在試算表「品項」工作表新增。</div>';
 }
@@ -275,6 +277,13 @@ function renderAll(){
 function apply(d){ Object.assign(S, d); $("#loading").hidden = true; renderAll(); }
 function load(){ return call("getInitData").then(apply).catch(e => { $("#loading").hidden = false; $("#loading").textContent = "載入失敗：" + e.message; }); }
 $("#refreshBtn").onclick = () => load().then(() => toast("已更新"));
+$("#cards").addEventListener("click", e => {
+  const b = e.target.closest(".sign"); if (!b) return;
+  e.preventDefault();
+  const inp = b.previousElementSibling, v = inp.value.trim();
+  inp.value = v.startsWith("-") ? v.slice(1) : "-" + v;
+  inp.focus();
+});
 
 $("#fillForm").addEventListener("submit", e => {
   e.preventDefault();
@@ -282,10 +291,10 @@ $("#fillForm").addEventListener("submit", e => {
   const byItem = {};
   let bad = "";
   document.querySelectorAll("#cards input[data-f]").forEach(inp => {
-    const raw = inp.value.trim().replace(/,/g, "");
+    const raw = inp.value.trim().replace(/,/g, "").replace(/−/g, "-");
     if (raw === "") return;
     const n = Number(raw), it = S.items[inp.dataset.i];
-    if (!isFinite(n) || n < 0) { bad = it.name + " 的數量只能填 0 以上的數字。"; return; }
+    if (!isFinite(n)) { bad = it.name + " 的數量只能填數字。"; return; }
     (byItem[it.name] = byItem[it.name] || { item: it.name })[inp.dataset.f] = n;
   });
   const entries = Object.values(byItem);
